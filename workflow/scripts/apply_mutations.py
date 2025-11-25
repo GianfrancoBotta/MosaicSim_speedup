@@ -19,7 +19,7 @@ def apply_CNV(seqs, info):
 
 def apply_aneuploidy(seqs, info):
     # seqs[info['chrom_num']] = seqs[info['chrom_num']] * info['rep_num']
-    seqs[info['chrom_num']][:] = seqs[info['chrom_num']] * info['rep_num']
+    seqs[info['chrom_num']] = seqs[info['chrom_num']] * info['rep_num']
     return seqs
 
 def apply_inversion(seqs, info):

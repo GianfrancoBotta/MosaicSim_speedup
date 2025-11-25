@@ -61,7 +61,7 @@ list_of_rates = {
 }
 
 # reversemap = {'chr1':0, 'chr10':2, 'chr11':4, 'chr12':6, 'chr13':8, 'chr14':10, 'chr15':12, 'chr16':14, 'chr17':16, 'chr18':18, 'chr19':20, 'chr2':22, 'chr20':24, 'chr21':26, 'chr22':28, 'chr3':30, 'chr4':32, 'chr5':34, 'chr6':36, 'chr7':38, 'chr8':40, 'chr9':42, 'chrX':44, 'chrY':45} 
-numchrommap = {0: 'chr1', 1: 'chr1', 2: 'chr10', 3: 'chr10', 4: 'chr11', 5: 'chr11', 6: 'chr12', 7: 'chr12', 8: 'chr13', 9: 'chr13', 10: 'chr14', 11: 'chr14', 12: 'chr15', 13: 'chr15', 14: 'chr16', 15: 'chr16', 16: 'chr17', 17: 'chr17', 18: 'chr18', 19: 'chr18', 20: 'chr19', 21: 'chr19', 22: 'chr2', 23: 'chr2', 24: 'chr20', 25: 'chr20', 26: 'chr21', 27: 'chr21', 28: 'chr22', 29: 'chr22', 30: 'chr3', 31: 'chr3', 32: 'chr4', 33: 'chr4', 34: 'chr5', 35: 'chr5', 36: 'chr6', 37: 'chr6', 38: 'chr7', 39: 'chr7', 40: 'chr8', 41: 'chr8', 42: 'chr9', 43: 'chr9', 44: 'chrX', 45: 'chrY'}
+# numchrommap = {0: 'chr1', 1: 'chr1', 2: 'chr10', 3: 'chr10', 4: 'chr11', 5: 'chr11', 6: 'chr12', 7: 'chr12', 8: 'chr13', 9: 'chr13', 10: 'chr14', 11: 'chr14', 12: 'chr15', 13: 'chr15', 14: 'chr16', 15: 'chr16', 16: 'chr17', 17: 'chr17', 18: 'chr18', 19: 'chr18', 20: 'chr19', 21: 'chr19', 22: 'chr2', 23: 'chr2', 24: 'chr20', 25: 'chr20', 26: 'chr21', 27: 'chr21', 28: 'chr22', 29: 'chr22', 30: 'chr3', 31: 'chr3', 32: 'chr4', 33: 'chr4', 34: 'chr5', 35: 'chr5', 36: 'chr6', 37: 'chr6', 38: 'chr7', 39: 'chr7', 40: 'chr8', 41: 'chr8', 42: 'chr9', 43: 'chr9', 44: 'chrX', 45: 'chrY'}
 # chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19',
 #               'chr2', 'chr20', 'chr21', 'chr22', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chrX', 'chrY']
 # reduced_chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17',
@@ -70,6 +70,7 @@ numchrommap = {0: 'chr1', 1: 'chr1', 2: 'chr10', 3: 'chr10', 4: 'chr11', 5: 'chr
 # chroms = [str(record.seq) for record in SeqIO.parse(full_genome, "fasta")]
 # chrom_names = [record.id for record in SeqIO.parse(full_genome, "fasta")]
 chrom_names, chroms = map(list, zip(*((record.id, bytearray(str(record.seq), 'utf-8')) for record in SeqIO.parse(full_genome, "fasta")))) # Parse sequences and names together
+numchrommap = dict(zip(range(len(chrom_names)), chrom_names))
 
 ##### There is no need to iterate over the genome and rewrite it, you can prepare it before
 # fasta_sequences = SeqIO.parse(open(full_genome), 'fasta')
@@ -204,7 +205,7 @@ for num_clones in num_clones_list:
     getmemory()
 
     for sample in range(num_samples):
-        print('starting sample')
+        # print('starting sample')
         exonDictR = exonDict
         real_working_dir = os.path.join(working_dir, f'sample_{sample}')
         os.makedirs(real_working_dir, exist_ok=True)
@@ -220,6 +221,8 @@ for num_clones in num_clones_list:
         # WES = random.choice(params['WES_list'])
         WES = params['WES_list'][0]
         error_rate = random.choice(params['error_rate_list'])
+        r = params['r']
+        p = params['p']
         with open(os.path.join(real_working_dir, 'parameter_list.txt'), 'w') as f:
             f.write('num leaves: ' + str(num_clones)+'\n')
             f.write('dir_conc: ' + str(alpha)+'\n')
@@ -233,18 +236,20 @@ for num_clones in num_clones_list:
             f.write('rates of variants: ' + str(avg_rate_list)+'\n')
             f.write('full poisson time: ' + str(depth) + '\n')
             f.write('error rate: ' + str(error_rate) + '\n')
-        getmemory()
+            if(num_single_cells > 1):
+                f.write('NB parameters: r=' + str(r) + ' p=' + str(p) + '\n')
+        # getmemory()
         if(paired):
             if(WES):
-                if num_single_cells == 0: # Bulk simulation
+                if num_single_cells in [0,1]: # Bulk simulation
                     exonrunPairedSim(chroms, use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
                                     params['batch_size'], root_node, exonDictR, numchrommap, params['subblock_size'], alpha, error_rate, tab, infos, muts, num_single_cells=1, flag=0)
-                for i in range(num_single_cells):
+                else:
                     # single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
                     # os.makedirs(single_cell_dir, exist_ok=True)
                     # clear_dir(single_cell_dir)
                     exonrunPairedSim(chroms, use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
-                                     params['batch_size'], root_node, exonDictR, numchrommap, params['subblock_size'], alpha, error_rate, tab, infos, muts, num_single_cells=num_single_cells, flag=2)
+                                     params['batch_size'], root_node, exonDictR, numchrommap, params['subblock_size'], alpha, error_rate, tab, infos, muts, r=r, p=p, num_single_cells=num_single_cells, flag=2)
                     # print(f"Memory for cell {i}")
                     # getmemory()
                     # sys.stdout.flush()

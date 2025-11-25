@@ -195,6 +195,7 @@ def saveMutations(current_genome, tot_nodes, working_dir, list_of_paths, use_sig
     infos[tot_nodes - 1] = []
     muts[tot_nodes - 1] = []
     for path in list_of_paths:
+        mutated_genome = copy.deepcopy(current_genome) # Create a copy not to modify directly the genome
         for i in range(len(path)-1):
             if(d[path[i+1]] == 'na'):
                 c_infos = infos[path[i]].copy()
@@ -203,15 +204,15 @@ def saveMutations(current_genome, tot_nodes, working_dir, list_of_paths, use_sig
                 
                 for m in current_muts:
                     if(m == "SNV" and use_signatures):
-                        info = save_functions[m](current_genome, num_signatures, signature_alpha, signature_distributions, signatures_matrix, numchrommap, list_of_bases, list_of_pairs, tab)
+                        info = save_functions[m](mutated_genome, num_signatures, signature_alpha, signature_distributions, signatures_matrix, numchrommap, list_of_bases, list_of_pairs, tab)
                     else:
-                        info = save_functions[m](current_genome, numchrommap)
+                        info = save_functions[m](mutated_genome, numchrommap)
                     if info is None:
                         print("invalid")
                     c_infos.append(info)
                     c_muts.append(m)
                     # Adjust mutations info for the mutated genomes (shift indices if there are two or more events on the same chromosome)
-                    current_genome = apply_functions[m](current_genome, info)
+                    mutated_genome = apply_functions[m](mutated_genome, info)
                 infos[path[i+1]] = c_infos
                 muts[path[i+1]] = c_muts
     return infos, muts
@@ -483,8 +484,7 @@ def exonrunSim(num_clones, coverage, rl, rloc, floc, batch, root, exonDict, numc
         cov += 2*batch*subblock
     del giga_list
 
-
-def exonrunPairedSim(ls, num_clones, coverage, rl, fl, rloc, floc, batch, root, exonDict, numchrommap, subblock, alpha, erate, tab, infos, muts, num_single_cells=1, flag=0):
+def exonrunPairedSim(ls, num_clones, coverage, rl, fl, rloc, floc, batch, root, exonDict, numchrommap, subblock, alpha, erate, tab, infos, muts, r=None, p=None, num_single_cells=1, flag=0):
     os.makedirs(floc, exist_ok=True)
     if(flag == 0):
         f1 = gzip.open(os.path.join(floc, 'bulkleft.fq.gz'), 'wt')
@@ -501,65 +501,77 @@ def exonrunPairedSim(ls, num_clones, coverage, rl, fl, rloc, floc, batch, root, 
     #     ls = rgz(f'{rloc}{root}.gz')
     # giga_list = []
     # giga_list2 = []
-    if(flag == 2):
-        ri = random.randint(0, num_clones)
-        chroms = applyMutations(ls, infos, muts, ri)
-    elif(flag == 0):
-        distn = getDirichletClone(num_clones, alpha)
-        clone = pickdclone(distn, num_clones)
-        chroms = applyMutations(ls, infos, muts, clone)
-    else:
+    if(flag == 0):
         chroms = ls
-    while(cov < coverage/num_single_cells):
-        # print(giga_list)
-        # print(giga_list2)
-        # print(cov)
-        chromnum = 0
-        for i in range(batch):
-            for chrom in chroms:
-                if(len(chrom)==0): # Deleted chromosomes
-                    continue
-                frag_len = 0
-                while(frag_len <= rl):
-                    frag_len = getfrag(fl)
-                # if random.random() < 0.5:
-                #     altchrom = chrom
-                # else:
-                #     altchrom = revc(chrom, tab)
-                for interval in exonDict[numchrommap[chromnum]]:
-                    for i in range(subblock):
-                        startindex = random.randint(interval[0], interval[1])
-                        sub = chrom[startindex:startindex+fl]
-                        if random.random() > 0.5:
-                            sub = revc(sub, tab)
-                        random_str = ''.join(random.choices(
-                            string.ascii_letters, k=15))
-                        qual1 = 'K'*len(sub[:rl])
-                        qual2 = 'K'*len(sub[-rl:])
-                        #sub = mutateFrag(sub, erate)
-                        pair1 = mutateFrag(sub[:rl], erate).decode("utf-8")
-                        pair2 = mutateFrag(revc(sub[-rl:], tab), erate).decode("utf-8")
-                        if(flag == 2):
-                            f1.write('\n'.join([f'@{ri}_{random_str}', pair1, '+', qual1]) + '\n')
-                            f2.write('\n'.join([f'@{ri}_{random_str}', pair2, '+', qual2]) + '\n')
-                        else:
-                            f1.write('\n'.join([f'@{random_str}', pair1, '+', qual1]) + '\n')
-                            f2.write('\n'.join([f'@{random_str}', pair2, '+', qual2]) + '\n')
-                        # giga_list.extend(
-                        #     [f'@{random_str}', pair1, '+', qual1])
-                        # giga_list2.extend(
-                        #     [f'@{random_str}', pair2, '+', qual2])
-                chromnum += 1
-        # for x in giga_list:
-        #     f.write(x)
-        #     f.write('\n')
-        # for x in giga_list2:
-        #     f2.write(x)
-        #     f2.write('\n')
-        # giga_list.clear()
-        # giga_list2.clear()
-        # print('first batch write done')
-        cov += 2*batch*subblock*ratio
+    if(flag == 2):
+        target_cov = np.random.negative_binomial(r, p, size=num_single_cells) # Sample cell depths from a negative binomial
+        target_cov = target_cov / target_cov.sum() * coverage # Scale to match total coverage
+    else:
+        target_cov = coverage
+    # Initialize lists to store reads from each single-cell
+    r1 = []
+    r2 = []
+    for i in range(num_single_cells):
+        if(flag == 2): # Pick a clone for every single-cell if it is a single-cell simultation
+            distn = getDirichletClone(num_clones, alpha)
+            clone = pickdclone(distn, num_clones)
+            chroms = applyMutations(ls, infos, muts, clone)
+        while(cov < target_cov[i]):
+            if(flag == 1): # Pick a clone for every added coverage if it is a bulk simulation
+                distn = getDirichletClone(num_clones, alpha)
+                clone = pickdclone(distn, num_clones)
+                chroms = applyMutations(ls, infos, muts, clone)
+            chromnum = 0
+            for i in range(batch):
+                for chrom in chroms:
+                    if(len(chrom)==0): # Deleted chromosomes
+                        continue
+                    frag_len = 0
+                    while(frag_len <= rl):
+                        frag_len = getfrag(fl)
+                    # if random.random() < 0.5:
+                    #     altchrom = chrom
+                    # else:
+                    #     altchrom = revc(chrom, tab)
+                    for interval in exonDict[numchrommap[chromnum]]:
+                        for i in range(subblock):
+                            startindex = random.randint(interval[0], interval[1])
+                            sub = chrom[startindex:startindex+fl]
+                            if random.random() > 0.5:
+                                sub = revc(sub, tab)
+                            random_str = ''.join(random.choices(
+                                string.ascii_letters, k=15))
+                            qual1 = 'K'*len(sub[:rl])
+                            qual2 = 'K'*len(sub[-rl:])
+                            #sub = mutateFrag(sub, erate)
+                            pair1 = mutateFrag(sub[:rl], erate).decode("utf-8")
+                            pair2 = mutateFrag(revc(sub[-rl:], tab), erate).decode("utf-8")
+                            if(flag == 2):
+                                r1.append('\n'.join([f'@{clone}_{random_str}', pair1, '+', qual1]) + '\n')
+                                r2.append('\n'.join([f'@{clone}_{random_str}', pair2, '+', qual2]) + '\n')
+                            else:
+                                r1.append('\n'.join([f'@{random_str}', pair1, '+', qual1]) + '\n')
+                                r2.append('\n'.join([f'@{random_str}', pair2, '+', qual2]) + '\n')
+                            # giga_list.extend(
+                            #     [f'@{random_str}', pair1, '+', qual1])
+                            # giga_list2.extend(
+                            #     [f'@{random_str}', pair2, '+', qual2])
+                    chromnum += 1
+            # for x in giga_list:
+            #     f.write(x)
+            #     f.write('\n')
+            # for x in giga_list2:
+            #     f2.write(x)
+            #     f2.write('\n')
+            # giga_list.clear()
+            # giga_list2.clear()
+            # print('first batch write done')
+            cov += 2*batch*subblock*ratio
+        # Write to file
+        f1.write("".join(r1)) 
+        f2.write("".join(r2))
+        r1.clear()
+        r2.clear()
     # del giga_list
     # del giga_list2
     f1.close()
