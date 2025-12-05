@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=snakemake_qc
 #SBATCH --ntasks=1      
-#SBATCH --cpus-per-task=4
-#SBATCH --mem-per-cpu=100G     
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=40G     
 #SBATCH --time=300:00:00      
 #SBATCH --output snakemake_qc.log
 #SBATCH --mail-type=END

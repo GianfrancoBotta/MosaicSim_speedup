@@ -8,24 +8,24 @@ signature_alpha: 10
 
 # Simulation setup
 # num_samples_list: [10,20,30]
-num_samples_list: [10]
-num_tumors_list: [1]
-# read_len_list: [75, 150, 500, 2000]
-# frag_len_list: [150, 200, 1000, 3000]
-read_len_list: [150]
-frag_len_list: [400] # Extract from bam
+num_samples: 10
+num_tumors: 1
+read_len: 150
+frag_len: 400 # Extract from bam
 alpha_list: [10]
 r: 3.783884 # Ideally fitted on your data
 p: 0.0143027069773697 # Ideally fitted on your data
-paired_list: [true]
-WES_list: [true]
+paired: True
+WES: True
 use_leaf_only: false
 # error_rate_list: [0.0, 0.0, 0.0, 0.00001, 0.00001, 0.0001, 0.001]
 error_rate_list: [0.001]
 clone_list: [2,4,6,8,10] 
 
 # Mutation rate categories (M_i in the paper)
-mutational_events: ["SNV", "CNV", "DEL", "DELSMALL", "INVERSION", "TRANSLOCATION", "BFB", "CHROMOTHRIP", "CHROMOPLEX", "INSERTIONSMALL", "KATAEGIS", "ANEUPLOIDY"]
+genome_length: 3095693983.0
+# mutational_events: ["SNV", "CNV", "DEL", "DELSMALL", "INVERSION", "TRANSLOCATION", "BFB", "CHROMOTHRIP", "CHROMOPLEX", "INSERTIONSMALL", "KATAEGIS", "ANEUPLOIDY"]
+mutational_events: ["SNV", "CNV", "DEL", "DELSMALL", "INVERSION", "TRANSLOCATION", "BFB", "CHROMOTHRIP", "INSERTIONSMALL", "KATAEGIS", "ANEUPLOIDY"]
 ultralow_rates_list: [1.0e-15]
 low_rates_list: [1.0e-15, 1.0e-13, 1.0e-10]
 medium_rates_list: [5.0e-9, 4.0e-10, 9.0e-10, 3.0e-9]
@@ -33,12 +33,10 @@ high_rates_list: [3.0e-8, 9.0e-9, 7.0e-9]
 ultrahigh_rates_list: [5.0e-8, 5.0e-7, 6.0e-7, 5.0e-8, 1.0e-7]
 
 # Sequencing coverage and population
-coverage_list: {"on_target": 0.1, "off_target": 0.0001}
-# coverage_list: {"on_target": 50000, "off_target": 50}
-pop_list: [8.0e+8] # Effective population size (needed in coalescent theory)
-# num_single_cell_list: [1000]
-num_single_cell_list: [100]
-liquid_biopsy_list: [false]
+coverage_list: {"on_target": 50000, "off_target": 50}
+pop_size: 8.0e+8 # Effective population size (needed in coalescent theory)
+num_single_cells: 100
+liquid_biopsy: False
 
 # Batch processing
 batch_size: 1
