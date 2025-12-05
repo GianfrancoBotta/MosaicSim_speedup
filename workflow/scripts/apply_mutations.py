@@ -1,29 +1,24 @@
 def apply_SNP(seqs, info):
-    # seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['pos']] + ord(info['char']) + seqs[info['chrom_num']][info['pos']+1:]
     seqs[info['chrom_num']][info['pos']] = ord(info['char'])
     return seqs
 
 def apply_insertion(seqs, info):
-    # seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['pos']] + info['insertion'].encode() + seqs[info['chrom_num']][info['pos']:]
-    seqs[info['chrom_num']][info['pos']:info['pos']] = info['insertion'].encode()
+    seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['pos']] + info['insertion'].encode() + seqs[info['chrom_num']][info['pos']:]
     return seqs
 
 def apply_deletion(seqs, info):
-    # seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['start']] + seqs[info['chrom_num']][info['end']:]
-    del seqs[info['chrom_num']][info['start']:info['end']]
+    seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['start']] + seqs[info['chrom_num']][info['end']:]
     return seqs
 
 def apply_CNV(seqs, info):
-    seqs[info['chrom_num']][info['end']:info['end']] = seqs[info['chrom_num']][info['start']:info['end']]*(info['rep_num']-1)
+    seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['start']] + seqs[info['chrom_num']][info['start']:info['end']]*info['rep_num'] + seqs[info['chrom_num']][info['end']:]
     return seqs
 
 def apply_aneuploidy(seqs, info):
-    # seqs[info['chrom_num']] = seqs[info['chrom_num']] * info['rep_num']
     seqs[info['chrom_num']] = seqs[info['chrom_num']] * info['rep_num']
     return seqs
 
 def apply_inversion(seqs, info):
-    # seqs[info['chrom_num']] = seqs[info['chrom_num']][:info['start']] + seqs[info['chrom_num']][info['start']:info['end']][::-1] + seqs[info['chrom_num']][info['end']:]
     seqs[info['chrom_num']][info['start']:info['end']] = seqs[info['chrom_num']][info['start']:info['end']][::-1]
     return seqs
 
